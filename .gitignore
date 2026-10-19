@@ -15,6 +15,7 @@ config.json
 
 # ---- 测试产物 / 临时输出 ----
 # 开发用的诊断脚本与内部验收已移出本目录，规则保留用于防回归
+node.zip
 tests/.shots/
 outputs/
 shots/
