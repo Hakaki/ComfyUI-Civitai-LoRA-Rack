@@ -1,0 +1,2411 @@
+/* ==========================================================================
+   ComfyUI-Civitai-LoRA-Rack 样式
+   配色为深紫暗色调（dark purple）
+   ========================================================================== */
+
+:root {
+  --cft-bg: #16131f;
+  --cft-bg-2: #1d1930;
+  --cft-bg-3: #262038;
+  --cft-border: #362e4d;
+  --cft-border-soft: #2a2440;
+  --cft-text: #e9e6f5;
+  --cft-text-dim: #a79fc4;
+  --cft-text-mute: #7d759a;
+  --cft-accent: #8b5cf6;
+  --cft-accent-hi: #a78bfa;
+  --cft-accent-soft: rgba(139, 92, 246, 0.16);
+  --cft-danger: #ef4a58;
+  --cft-warn: #e0a33c;
+  --cft-ok: #3fb950;
+  --cft-radius: 10px;
+  --cft-shadow: 0 24px 64px rgba(0, 0, 0, 0.62);
+}
+
+/* ------------------------------------------------------------------ 遮罩层 */
+
+.cft-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4vh;
+  background: rgba(8, 6, 14, 0.62);
+  backdrop-filter: blur(3px);
+  font-family: system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  color: var(--cft-text);
+  animation: cft-fade 0.14s ease-out;
+}
+
+/* 浮动模式遮罩：完全不拦截鼠标事件，也不变暗/模糊，
+   让画布仍可正常平移 / 缩放 / 框选（窗口本体自行恢复 pointer-events）。 */
+.cft-mask.cft-float-mask {
+  pointer-events: none;
+  background: none;
+  backdrop-filter: none;
+  padding-top: 0;
+  animation: none;
+}
+
+.cft-mask.cft-float-mask .cft-modal.cft-floating {
+  position: fixed;
+  top: 56px;
+  right: 24px;
+  left: auto;
+  margin: 0;
+  pointer-events: auto;
+}
+
+/* 浮动窗口被最小化时：只留标题栏 */
+.cft-modal.cft-minimized .cft-body,
+.cft-modal.cft-minimized .cft-footer { display: none; }
+
+.cft-modal.cft-minimized { max-height: none !important; }
+
+@keyframes cft-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cft-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--cft-bg);
+  border: 1px solid var(--cft-border);
+  border-radius: 14px;
+  box-shadow: var(--cft-shadow);
+  overflow: hidden;
+  /* 必须 border-box：JS 用 getBoundingClientRect()（border-box）记录几何、
+     再用 style.width/height（border-box）还原；若为默认的 content-box，
+     每次重开窗口宽/高都会各漂移 2px（左右/上下边框）。 */
+  box-sizing: border-box;
+  animation: cft-rise 0.16s ease-out;
+}
+
+/* 弹窗内统一 border-box（box-sizing 不继承，必须显式给后代）。
+   否则 .cft-num 的 width:68px 之外还要加 padding 12px + border 2px = 实际 82px，
+   会撑破 74px 的 .cft-field-sm，是控件区被挤到操作列上的另一个原因。 */
+.cft-modal *,
+.cft-modal *::before,
+.cft-modal *::after {
+  box-sizing: border-box;
+}
+
+@keyframes cft-rise {
+  from { transform: translateY(10px) scale(0.995); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ----------------------------------------------------- 浮动窗口调整大小 */
+
+.cft-resize {
+  position: absolute;
+  z-index: 6;
+  touch-action: none;
+}
+
+/* 右下角抓手 */
+.cft-resize-se {
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  cursor: nwse-resize;
+}
+
+.cft-resize-se::after {
+  content: "✚";
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--cft-text-mute);
+  opacity: 0.85;
+}
+
+/* 右边缘 / 下边缘抓手 */
+.cft-resize-e {
+  right: 0;
+  top: 40px;
+  bottom: 22px;
+  width: 10px;
+  cursor: ew-resize;
+}
+
+.cft-resize-s {
+  left: 22px;
+  right: 22px;
+  bottom: 0;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+/* 抓手常显一条淡淡的提示边，鼠标悬停时高亮，避免和滚动条混在一起误触 */
+.cft-resize-e::after,
+.cft-resize-s::after {
+  content: "";
+  position: absolute;
+  background: rgba(139, 92, 246, 0.28);
+  border-radius: 2px;
+  transition: background 0.14s;
+}
+
+.cft-resize-e::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+}
+
+.cft-resize-s::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+}
+
+.cft-resize-e:hover::after,
+.cft-resize-s:hover::after { background: var(--cft-accent); }
+
+.cft-resize:hover { background: rgba(139, 92, 246, 0.18); }
+
+/* 单例重复打开时的强调动画 */
+.cft-modal.cft-flash { animation: cft-flash 0.45s ease-out; }
+
+@keyframes cft-flash {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.75), var(--cft-shadow); }
+  100% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0), var(--cft-shadow); }
+}
+
+/* ------------------------------------------------------------------ 头部 */
+
+.cft-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, var(--cft-bg-2), var(--cft-bg));
+  border-bottom: 1px solid var(--cft-border);
+  cursor: grab;
+  user-select: none;
+  flex: none;
+}
+
+.cft-header:active { cursor: grabbing; }
+
+.cft-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.cft-title::before {
+  content: "🎴";
+  margin-right: 7px;
+}
+
+.cft-header-extra {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cft-close {
+  margin-left: 4px;
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ 主体 */
+
+.cft-body {
+  flex: 1;
+  min-height: 140px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+}
+
+.cft-body::-webkit-scrollbar,
+.cft-grid::-webkit-scrollbar,
+.cft-stack-list::-webkit-scrollbar { width: 14px; }
+
+.cft-body::-webkit-scrollbar-thumb,
+.cft-grid::-webkit-scrollbar-thumb,
+.cft-stack-list::-webkit-scrollbar-thumb {
+  background: var(--cft-border);
+  border-radius: 7px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  /* 加一条亮色内芯，滚动条和拖动抓手更容易区分 */
+  box-shadow: inset 0 0 0 3px rgba(139, 92, 246, 0.55);
+}
+
+.cft-body::-webkit-scrollbar-thumb:hover,
+.cft-grid::-webkit-scrollbar-thumb:hover,
+.cft-stack-list::-webkit-scrollbar-thumb:hover {
+  background: var(--cft-accent);
+  background-clip: padding-box;
+}
+
+.cft-body::-webkit-scrollbar-track,
+.cft-grid::-webkit-scrollbar-track,
+.cft-stack-list::-webkit-scrollbar-track { background: transparent; }
+
+.cft-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--cft-bg-2);
+  border-top: 1px solid var(--cft-border);
+  flex: none;
+}
+
+.cft-footer-info {
+  font-size: 12px;
+  color: var(--cft-text-mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 52%;
+}
+
+/* 前端版本标记：确认浏览器跑的是最新 JS */
+.cft-footer-ver {
+  flex: none;
+  margin-left: 8px;
+  font-size: 10.5px;
+  color: var(--cft-text-mute);
+  opacity: 0.75;
+  letter-spacing: 0.2px;
+}
+
+.cft-spacer { flex: 1; }
+
+.cft-hint {
+  font-size: 12px;
+  color: var(--cft-text-mute);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ 按钮 */
+
+.cft-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--cft-text);
+  background: var(--cft-bg-3);
+  border: 1px solid var(--cft-border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.14s, border-color 0.14s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.cft-btn:hover {
+  background: #302846;
+  border-color: var(--cft-accent);
+}
+
+.cft-btn:active { transform: translateY(1px); }
+
+.cft-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 批量查 C 站：当前列表没有待查条目时变暗（仍可点，点了会提示） */
+.cft-btn.cft-btn-dim {
+  color: var(--cft-text-mute);
+  border-style: dashed;
+}
+
+.cft-btn-primary {
+  background: var(--cft-accent);
+  border-color: var(--cft-accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.cft-btn-primary:hover {
+  background: var(--cft-accent-hi);
+  border-color: var(--cft-accent-hi);
+}
+
+.cft-btn-danger {
+  color: #ffb3b9;
+  border-color: rgba(239, 74, 88, 0.42);
+}
+
+.cft-btn-danger:hover {
+  background: rgba(239, 74, 88, 0.14);
+  border-color: var(--cft-danger);
+}
+
+.cft-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--cft-text-dim);
+  background: var(--cft-bg-3);
+  border: 1px solid var(--cft-border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.14s;
+  flex: none;
+}
+
+.cft-icon-btn:hover {
+  color: #fff;
+  background: var(--cft-accent);
+  border-color: var(--cft-accent);
+}
+
+.cft-icon-btn.cft-danger:hover {
+  background: var(--cft-danger);
+  border-color: var(--cft-danger);
+}
+
+.cft-mini-btn {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  color: var(--cft-accent-hi);
+  background: transparent;
+  border: 1px solid var(--cft-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cft-mini-btn:hover {
+  background: var(--cft-accent-soft);
+  border-color: var(--cft-accent);
+}
+
+/* ------------------------------------------------------- Lora 堆列表行 */
+
+.cft-stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * 行布局用 flex + wrap 而不是 grid 的固定列宽：
+ * 旧写法 grid-template-columns: 22px 52px minmax(150px,1fr) auto 66px 有两个硬伤
+ *   ① 操作列写死 66px，但 3 个 27px 图标按钮 + 2 个 4px 间距 = 89px → 按钮溢出；
+ *   ② 控件列是 auto，内容（298px）在窄窗口被压扁后不换行，直接画到操作列上面，
+ *      于是「启用」开关和 ↑ ↓ 重合。
+ * flex-wrap 保证任何宽度下都不重叠：宽窗口一行，窄窗口控件自动落到第二行，
+ * 操作列 margin-left:auto 始终右对齐。
+ */
+.cft-stack-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: var(--cft-bg-2);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.cft-stack-row:hover {
+  border-color: var(--cft-border);
+  background: var(--cft-bg-3);
+}
+
+.cft-stack-row.cft-disabled { opacity: 0.48; }
+
+/* 拖动排序：把手 + 拖拽观感 + 插入指示 */
+.cft-drag {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 40px;
+  font-size: 15px;
+  color: var(--cft-text-mute);
+  cursor: grab;
+  user-select: none;
+  border-radius: 6px;
+  transition: color 0.14s, background 0.14s;
+}
+
+.cft-drag:hover { color: var(--cft-accent-hi); background: rgba(255, 255, 255, 0.05); }
+.cft-drag:active { cursor: grabbing; }
+
+.cft-stack-row.cft-dragging {
+  opacity: 0.55;
+  border-color: var(--cft-accent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+}
+
+.cft-stack-row.cft-drop-before { box-shadow: inset 0 3px 0 var(--cft-accent); }
+.cft-stack-row.cft-drop-after { box-shadow: inset 0 -3px 0 var(--cft-accent); }
+
+.cft-thumb {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #0f0d18;
+  border: 1px solid var(--cft-border-soft);
+  cursor: zoom-in;
+}
+
+.cft-row-info { flex: 1 1 160px; min-width: 0; }
+
+.cft-row-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cft-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cft-name:hover { color: inherit; text-decoration: underline; }
+
+.cft-ext {
+  color: var(--cft-accent-hi);
+  text-decoration: none;
+  font-size: 12px;
+  flex: none;
+}
+
+.cft-ext:hover { text-decoration: underline; }
+
+.cft-row-sub {
+  font-size: 11.5px;
+  color: var(--cft-text-mute);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cft-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.cft-tag {
+  padding: 1px 7px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--cft-text-dim);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.cft-tag-word {
+  color: #cbb6ff;
+  background: var(--cft-accent-soft);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.cft-badge {
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 15px;
+  border-radius: 4px;
+  flex: none;
+}
+
+.cft-badge-warn {
+  color: var(--cft-warn);
+  background: rgba(224, 163, 60, 0.14);
+  border: 1px solid rgba(224, 163, 60, 0.34);
+}
+
+.cft-badge-err {
+  color: #ffb3b9;
+  background: rgba(239, 74, 88, 0.14);
+  border: 1px solid rgba(239, 74, 88, 0.36);
+}
+
+/* 缺 C 站信息行上的「查」按钮 */
+.cft-query-btn {
+  flex: none;
+  padding: 1px 8px;
+  line-height: 15px;
+}
+
+.cft-row-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.cft-field {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cft-field label {
+  font-size: 10.5px;
+  color: var(--cft-text-mute);
+  letter-spacing: 0.2px;
+}
+
+.cft-field-sm { width: 74px; }
+.cft-field-toggle { width: 42px; align-items: center; }
+/* 收藏星标字段：比开关窄一点，只放一颗 27px 的星 */
+.cft-field-fav { width: 34px; align-items: center; }
+
+.cft-field-inline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cft-row-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------------------ 控件 */
+
+.cft-num {
+  width: 68px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--cft-text);
+  background: #100e1a;
+  border: 1px solid var(--cft-border);
+  border-radius: 6px;
+  text-align: center;
+  outline: none;
+}
+
+/* 模型权重数字框：略宽，方便显示负数 / 多位小数 */
+.cft-num-lg { width: 78px; }
+
+.cft-num:focus { border-color: var(--cft-accent); }
+
+.cft-search,
+.cft-select {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--cft-text);
+  background: #100e1a;
+  border: 1px solid var(--cft-border);
+  border-radius: 8px;
+  outline: none;
+}
+
+.cft-search { flex: 1; min-width: 180px; }
+.cft-search:focus, .cft-select:focus { border-color: var(--cft-accent); }
+
+.cft-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 11px;
+  flex-wrap: wrap;
+}
+
+/* 开关 */
+
+.cft-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.cft-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cft-switch-track {
+  display: block;
+  width: 34px;
+  height: 18px;
+  background: var(--cft-border);
+  border-radius: 20px;
+  transition: background 0.18s;
+  position: relative;
+}
+
+.cft-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: #cfc8e4;
+  border-radius: 50%;
+  transition: transform 0.18s, background 0.18s;
+}
+
+.cft-switch input:checked + .cft-switch-track {
+  background: var(--cft-accent);
+}
+
+.cft-switch input:checked + .cft-switch-track::after {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+.cft-switch-mini .cft-switch-track {
+  width: 28px;
+  height: 15px;
+}
+
+.cft-switch-mini .cft-switch-track::after {
+  width: 11px;
+  height: 11px;
+}
+
+.cft-switch-mini input:checked + .cft-switch-track::after {
+  transform: translateX(13px);
+}
+
+/* --------------------------------------------------------- 选择器网格 */
+
+.cft-grid {
+  display: grid;
+  /* 卡片尺寸由 JS 通过 --cft-card-size 控制（默认 168px） */
+  grid-template-columns: repeat(auto-fill, minmax(var(--cft-card-size, 168px), 1fr));
+  gap: 11px;
+}
+
+.cft-card-wrap { position: relative; }
+
+.cft-card {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid transparent;
+  border-radius: var(--cft-radius);
+  /* 纯视觉描边环：不参与命中测试（旧版 pointer-events 默认可点，
+     导致绝对定位层吃掉整卡片点击，ⓘ 按钮永远点不到）。
+     选中点击交给下方流内的 .cft-card-body。 */
+  pointer-events: none;
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.cft-card:hover { border-color: rgba(139, 92, 246, 0.55); background: var(--cft-accent-soft); }
+
+.cft-card.cft-selected {
+  border-color: var(--cft-accent);
+  background: var(--cft-accent-soft);
+}
+
+.cft-card.cft-selected::after {
+  content: "✓";
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 21px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #fff;
+  background: var(--cft-accent);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.cft-card-body {
+  position: relative;
+  z-index: 1;
+  background: var(--cft-bg-2);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.cft-card-img { cursor: zoom-in; }
+
+.cft-card-title { cursor: pointer; }
+
+.cft-card-img {
+  width: 100%;
+  height: var(--cft-card-size, 168px);
+  object-fit: cover;
+  background: #0f0d18;
+  display: block;
+}
+
+.cft-card-img.cft-img-fail,
+.cft-detail-img.cft-img-fail,
+.cft-gallery-item.cft-img-fail {
+  min-height: 90px;
+  background:
+    linear-gradient(135deg, #201a33, #15121f) padding-box,
+    repeating-linear-gradient(45deg, #2a2440 0 8px, #221d35 8px 16px) border-box;
+}
+
+.cft-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 8px 0;
+}
+
+.cft-chip {
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 15px;
+  color: #cbb6ff;
+  background: var(--cft-accent-soft);
+  border: 1px solid rgba(139, 92, 246, 0.36);
+  border-radius: 4px;
+}
+
+.cft-chip-nsfw {
+  color: #ffa8b0;
+  background: rgba(239, 74, 88, 0.14);
+  border-color: rgba(239, 74, 88, 0.36);
+}
+
+.cft-chip-warn {
+  color: var(--cft-warn);
+  background: rgba(224, 163, 60, 0.14);
+  border-color: rgba(224, 163, 60, 0.34);
+}
+
+.cft-card-title {
+  padding: 5px 8px 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cft-card-sub {
+  padding: 1px 8px 0;
+  font-size: 11px;
+  color: var(--cft-text-mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cft-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 5px 8px;
+  min-height: 22px;
+}
+
+.cft-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 7px;
+  margin-top: auto;
+  font-size: 10.5px;
+  color: var(--cft-text-mute);
+  border-top: 1px solid var(--cft-border-soft);
+}
+
+.cft-card-size { margin-left: auto; }
+
+.cft-card-info {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 12px;
+  color: var(--cft-accent-hi);
+  background: transparent;
+  border: 1px solid var(--cft-border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cft-card-info:hover {
+  background: var(--cft-accent);
+  border-color: var(--cft-accent);
+  color: #fff;
+}
+
+/* v2.12：收藏星标 —— 卡片 / 列表行脚部（ⓘ 旁）与堆条目行（「启用」旁）。
+   未收藏 = 空心 ☆（低调）；已收藏 = 实心 ★ 暖金，与 ⭐ 徽标（.cft-chip-fav）
+   保持同一色系，免得两处颜色不一致让人怀疑是不是同一份数据。
+   注意：这里刻意**不**复用 .cft-card-info —— 那个类是 ⓘ 的标识，
+   混用会让「找 ⓘ 按钮」的选择器先抓到星标（沙盒 R7c 就被这样带偏过）。 */
+.cft-card-fav {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--cft-text-mute);
+  background: transparent;
+  border: 1px solid var(--cft-border);
+  border-radius: 5px;
+  cursor: pointer;
+  flex: none;
+}
+
+.cft-icon-btn.cft-fav-toggle {
+  font-size: 13px;
+  color: var(--cft-text-mute);
+}
+
+.cft-card-fav.cft-faved,
+.cft-icon-btn.cft-fav-toggle.cft-faved {
+  color: #ffd28a;
+  background: rgba(255, 210, 122, 0.16);
+  border-color: rgba(255, 210, 122, 0.55);
+}
+
+.cft-card-fav.cft-faved:hover,
+.cft-icon-btn.cft-fav-toggle.cft-faved:hover {
+  background: rgba(255, 210, 122, 0.28);
+  border-color: rgba(255, 210, 122, 0.75);
+}
+
+/* --------------------------------------------------- 选择器：工具 / 视图 */
+
+.cft-viewbtn.cft-active {
+  background: var(--cft-accent);
+  border-color: var(--cft-accent);
+  color: #fff;
+}
+
+/* 收藏筛选按钮（picker toolbar）：默认中性，激活时金色高亮。
+   用 .cft-toolbar 限定作用域 —— 详情窗「我的标签 / 说明」标题行也有一个
+   .cft-fav-btn（cft-mini-btn 变体），不能被这里的 flex/none 规则带到。 */
+.cft-toolbar .cft-fav-btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+.cft-toolbar .cft-fav-btn.cft-active {
+  color: #ffd28a;
+  background: rgba(255, 210, 122, 0.16);
+  border-color: rgba(255, 210, 122, 0.55);
+}
+
+.cft-cardsize {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border: 1px solid var(--cft-border);
+  border-radius: 8px;
+  background: var(--cft-bg-2);
+}
+
+.cft-cardsize-val {
+  min-width: 30px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--cft-text-dim);
+}
+
+/* ------------------------------------------------------ 选择器：列表视图 */
+
+.cft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cft-list-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--cft-bg-2);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.cft-list-row:hover { border-color: var(--cft-border); background: var(--cft-bg-3); }
+
+.cft-list-row.cft-selected {
+  border-color: var(--cft-accent);
+  background: var(--cft-accent-soft);
+}
+
+.cft-list-row.cft-selected::before {
+  content: "✓";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  background: var(--cft-accent);
+  border-radius: 50%;
+}
+
+.cft-list-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 7px;
+  background: #0f0d18;
+  border: 1px solid var(--cft-border-soft);
+  flex: none;
+  cursor: zoom-in;
+}
+
+.cft-list-main { flex: 1; min-width: 0; }
+
+.cft-list-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cft-list-name:hover { text-decoration: underline; }
+
+.cft-list-sub {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--cft-text-mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cft-list-tags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  max-width: 34%;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------ 详情弹窗 */
+
+.cft-detail-wrap {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.cft-detail-left { position: sticky; top: 0; }
+
+.cft-detail-img {
+  width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+  background: #0f0d18;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+}
+
+.cft-gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.cft-gallery-item {
+  width: 100%;
+  height: 62px;
+  object-fit: cover;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.14s;
+}
+
+.cft-gallery-item:hover { border-color: var(--cft-accent); }
+
+.cft-detail-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.cft-detail-path {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--cft-text-mute);
+  word-break: break-all;
+}
+
+/* v2.19：lora 名称下面一行 —— 路径 + 收藏按钮 */
+.cft-detail-subrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cft-detail-subrow .cft-detail-path {
+  margin-top: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cft-detail-subrow .cft-fav-btn { flex: none; }
+
+.cft-kv {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 5px 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--cft-bg-2);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+}
+
+.cft-kv-dense { margin-top: 6px; }
+
+.cft-kv-k {
+  font-size: 11.5px;
+  color: var(--cft-text-mute);
+}
+
+.cft-kv-v {
+  font-size: 12.5px;
+  word-break: break-word;
+}
+
+.cft-section { margin-top: 14px; }
+
+.cft-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cft-text-dim);
+  letter-spacing: 0.3px;
+}
+
+.cft-word-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cft-desc {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.62;
+  color: var(--cft-text-dim);
+  background: var(--cft-bg-2);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------------- 空态与提示 */
+
+.cft-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 48px 20px;
+  color: var(--cft-text-mute);
+  text-align: center;
+}
+
+.cft-empty-icon { font-size: 30px; opacity: 0.65; }
+
+.cft-empty-hint { font-size: 11.5px; opacity: 0.75; }
+
+.cft-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.cft-error-icon { font-size: 30px; color: var(--cft-warn); }
+
+.cft-error-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cft-text);
+}
+
+.cft-error-msg {
+  max-width: 560px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--cft-danger);
+  background: rgba(239, 74, 88, 0.1);
+  border: 1px solid rgba(239, 74, 88, 0.36);
+  border-radius: var(--cft-radius);
+  padding: 10px 14px;
+  word-break: break-word;
+}
+
+.cft-error-hint { font-size: 11.5px; color: var(--cft-text-mute); word-break: break-all; }
+
+.cft-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  transform: translate(-50%, 12px);
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: #fff;
+  background: #2c2540;
+  border: 1px solid var(--cft-accent);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.cft-toast-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* v2.13：全局 toast 容器 —— 抬到画布右下角工具栏之上，多条纵向堆叠不互相盖住 */
+.cft-toast-host {
+  position: fixed;
+  right: 20px;
+  bottom: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 100000;
+}
+
+/* v2.13：全局 toast（节点级提示挂 body，不受弹窗容器限制） */
+.cft-toast-global {
+  transform: translate(0, 12px);
+  max-width: 340px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: #fff;
+  background: #2c2540;
+  border: 1px solid var(--cft-accent);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 100000;
+}
+
+.cft-toast-global.cft-toast-show {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+.cft-toast-err {
+  border-color: var(--cft-danger);
+  background: #3a1220;
+}
+
+.cft-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--cft-text-dim);
+  background: rgba(12, 10, 20, 0.74);
+  backdrop-filter: blur(2px);
+  z-index: 4;
+}
+
+.cft-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--cft-border);
+  border-top-color: var(--cft-accent-hi);
+  border-radius: 50%;
+  animation: cft-spin 0.7s linear infinite;
+}
+
+@keyframes cft-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* -------------------------------------------------------------- Lightbox */
+
+/* 全屏看图器：z-index 高于弹窗遮罩（99999），只在用户主动看图时出现。
+   自带遮罩只覆盖自己，不拦截画布（因为它是独立全屏覆盖层）。 */
+.cft-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  pointer-events: auto;
+  font-family: system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  user-select: none;
+}
+
+.cft-lb-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+.cft-lb-stage.cft-lb-grabbing { cursor: grabbing; }
+
+.cft-lb-imgbox {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cft-lb-img {
+  display: block;
+  max-width: 92vw;
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  transform-origin: center center;
+  will-change: transform;
+  border-radius: 4px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  cursor: zoom-in;
+  -webkit-user-drag: none;
+}
+
+.cft-lb-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  z-index: 3;
+}
+
+.cft-lb-spacer { flex: 1; }
+
+.cft-lb-counter {
+  font-size: 13px;
+  color: #e9e6f5;
+  background: rgba(30, 26, 48, 0.75);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 16px;
+  padding: 3px 12px;
+}
+
+.cft-lb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #e9e6f5;
+  background: rgba(30, 26, 48, 0.82);
+  border: 1px solid var(--cft-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+
+.cft-lb-btn:hover { background: var(--cft-accent); border-color: var(--cft-accent); }
+
+.cft-lb-close { margin-left: 6px; }
+
+.cft-lb-toolbar {
+  position: absolute;
+  right: 16px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 3;
+}
+
+.cft-lb-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 46px;
+  height: 76px;
+  padding: 0;
+  font-size: 30px;
+  line-height: 1;
+  color: #e9e6f5;
+  background: rgba(30, 26, 48, 0.55);
+  border: 1px solid var(--cft-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+
+.cft-lb-nav:hover { background: var(--cft-accent); border-color: var(--cft-accent); }
+
+.cft-lb-prev { left: 14px; }
+.cft-lb-next { right: 14px; }
+
+@media (max-width: 720px) {
+  .cft-lb-nav { width: 36px; height: 56px; font-size: 22px; }
+}
+
+/* ------------------------------------------------------ 节点内嵌面板 */
+
+.cft-node-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  /* 吃满 DOM widget 分到的高度（节点拖多高就多高），内部再按 flex 分配：
+     header 固定、列表弹性 → 「能看到几条」由节点高度决定（v2.16）。
+     这一行是整条链路的落点：ComfyUI 把 widget 元素 clone 成 h-full，
+     再靠这里的 100% 把高度传下去；去掉它面板就退回内容高度、
+     又会把节点顶长（v2.14 的毛病）。 */
+  height: 100%;
+  min-height: 0;
+  padding: 4px 2px 2px;
+  font-family: system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 11.5px;
+  color: #d8d3ea;
+  box-sizing: border-box;
+}
+
+.cft-np-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  /* 头部固定高度，别被列表挤压 */
+  flex: none;
+}
+
+.cft-np-count { font-weight: 600; color: #cbb6ff; }
+
+.cft-np-active { color: #7d759a; font-size: 10.5px; }
+
+.cft-np-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  color: #d8d3ea;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cft-np-btn:hover {
+  background: var(--cft-accent);
+  border-color: var(--cft-accent);
+  color: #fff;
+}
+
+.cft-np-add { font-weight: 700; padding: 2px 7px; }
+
+/* v2.13：备份恢复横幅 —— 提醒"这些是从本机备份找回来的，不是工作流里存的" */
+.cft-np-restored {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  font-size: 10.5px;
+  color: #ffd28a;
+  background: rgba(255, 210, 122, 0.12);
+  border-bottom: 1px solid rgba(255, 210, 122, 0.28);
+}
+
+.cft-np-restored { flex: none; }
+
+.cft-np-restored > span { flex: 1; min-width: 0; }
+
+.cft-np-empty {
+  flex: none;
+  padding: 10px 4px;
+  color: #7d759a;
+  text-align: center;
+  font-size: 11px;
+}
+
+.cft-np-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 弹性占满面板剩余高度（v2.16）：节点拖高 → 列表变高 → 看到更多条；
+     拖矮 → 列表变矮 → 出滚动条。
+     真正承重的是父级 .cft-node-panel 的 height:100%（面板高度来自节点，
+     见那边注释）；这里 flex:1 是显式表达"吃掉 header 之外的剩余高度"。
+     min-height:0 属于保险：overflow 非 visible 的 flex 项规范上
+     min-height:auto 已按 0 算，写出来是为了别被将来的改动破坏。 */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+/* 面板很窄，滚动条要细一点，别吃掉显示宽度 */
+.cft-np-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cft-np-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cft-np-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 3px;
+}
+
+.cft-np-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.cft-np-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 3px;
+  border-radius: 5px;
+  /* 列表是 flex column + overflow，行必须保持自身高度不被压扁 */
+  flex: none;
+}
+
+.cft-np-row:hover { background: rgba(255, 255, 255, 0.05); }
+
+.cft-np-row.cft-disabled { opacity: 0.45; }
+
+.cft-np-thumb {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0f0d18;
+  flex: none;
+  cursor: zoom-in;
+}
+
+.cft-np-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cft-np-name:hover { color: #cbb6ff; text-decoration: underline; }
+
+/* 节点内嵌面板的权重数字输入框（无滑块） */
+.cft-np-weight {
+  width: 56px;
+  flex: none;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-family: inherit;
+  text-align: center;
+  color: #d8d3ea;
+  background: #100e1a;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 5px;
+  outline: none;
+}
+
+.cft-np-weight:focus { border-color: var(--cft-accent); }
+
+.cft-np-del {
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: #a79fc4;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  cursor: pointer;
+  flex: none;
+}
+
+.cft-np-del:hover {
+  background: var(--cft-danger);
+  border-color: var(--cft-danger);
+  color: #fff;
+}
+
+.cft-np-more {
+  flex: none;
+  padding: 3px 4px;
+  font-size: 10.5px;
+  color: #7d759a;
+  text-align: center;
+}
+
+/* ==========================================================================
+   R8 / R9：清理窗口 + 右键菜单
+   ========================================================================== */
+
+/* ------------------------------------------------------------- 右键菜单 */
+
+.cft-ctxable {
+  cursor: context-menu;
+}
+
+.cft-ctxmenu {
+  position: fixed;
+  z-index: 100200; /* 高于 modal(.cft-mask 99999) 与 lightbox */
+  min-width: 208px;
+  max-width: 340px;
+  padding: 5px;
+  border: 1px solid var(--cft-border);
+  border-radius: var(--cft-radius);
+  background: var(--cft-bg-2);
+  box-shadow: var(--cft-shadow);
+  font-family: system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 12.5px;
+  color: var(--cft-text);
+  user-select: none;
+  animation: cft-fade 0.1s ease-out;
+}
+
+.cft-ctxmenu-item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--cft-text);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.cft-ctxmenu-item:hover:not(:disabled) {
+  background: var(--cft-accent-soft);
+  color: var(--cft-accent-hi);
+}
+
+.cft-ctxmenu-item:disabled {
+  color: var(--cft-text-mute);
+  cursor: default;
+  opacity: 0.55;
+}
+
+.cft-ctxmenu-danger { color: #ff9aa4; }
+.cft-ctxmenu-danger:hover:not(:disabled) {
+  background: rgba(239, 74, 88, 0.16);
+  color: #ffc2c8;
+}
+
+.cft-ctxmenu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--cft-border-soft);
+}
+
+.cft-ctxmenu-title {
+  max-width: 320px;
+  padding: 4px 10px 5px;
+  color: var(--cft-text-mute);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------- 清理窗口 */
+
+.cft-cleanup-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 8px;
+  background: var(--cft-bg-2);
+  font-size: 12.5px;
+}
+
+.cft-cleanup-banner-sub {
+  color: var(--cft-text-mute);
+  font-size: 11px;
+}
+
+.cft-cleanup-safe {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 7px 11px;
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  border-radius: 8px;
+  background: rgba(63, 185, 80, 0.08);
+  color: #9fe0a8;
+  font-size: 11.5px;
+}
+
+.cft-cleanup-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cft-cleanup-g-wrap {
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 8px;
+  background: var(--cft-bg-2);
+  overflow: hidden;
+}
+
+.cft-cleanup-g {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cft-cleanup-g:hover { background: var(--cft-bg-3); }
+
+.cft-cleanup-g-empty {
+  opacity: 0.5;
+  cursor: default;
+}
+.cft-cleanup-g-empty:hover { background: none; }
+
+.cft-cleanup-g-check {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+.cft-cleanup-g-check input { cursor: pointer; margin: 0; }
+.cft-cleanup-g-check input:disabled { cursor: default; }
+
+.cft-cleanup-g-label {
+  font-size: 12.5px;
+  color: var(--cft-text);
+  min-width: 96px;
+}
+
+.cft-cleanup-g-count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cft-accent-soft);
+  color: var(--cft-accent-hi);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cft-cleanup-g-size {
+  color: var(--cft-text-dim);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  min-width: 74px;
+}
+
+.cft-cleanup-g-hint {
+  flex: 1 1 180px;
+  min-width: 0;
+  color: var(--cft-text-mute);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cft-cleanup-files {
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 4px 10px 8px 34px;
+  border-top: 1px solid var(--cft-border-soft);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.cft-cleanup-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--cft-text-dim);
+}
+
+.cft-cleanup-file-rel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl; /* 长路径从尾部显示，保留更有信息量的尾部 */
+  text-align: left;
+}
+
+.cft-cleanup-file-size {
+  flex: none;
+  color: var(--cft-text-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+.cft-cleanup-file-more { color: var(--cft-text-mute); font-style: italic; }
+
+.cft-cleanup-perm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 8px;
+  background: var(--cft-bg-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cft-cleanup-perm:hover { background: var(--cft-bg-3); }
+
+.cft-cleanup-perm-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.cft-cleanup-perm-hint {
+  color: var(--cft-text-mute);
+  font-size: 11px;
+}
+
+/* 清理按钮在工具栏里别被挤掉 */
+.cft-cleanup-btn { flex: none; }
+
+/* ==========================================================================
+   第四批（R10–R15）：自绘对话框 / 隔离区 / 副本标记 / 视频封面 / 自定义标签
+   ========================================================================== */
+
+/* ----------------------------------------------------- 自绘对话框（R10） */
+
+/* 高度由 JS 在 onOpen() 里覆盖成 auto；这里给内容一个滚动上限兜底。 */
+.cft-ask-modal .cft-body {
+  overflow: auto;
+  max-height: 60vh;
+}
+
+.cft-ask-message {
+  font-size: 12.5px;
+  line-height: 1.62;
+  color: var(--cft-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cft-ask-lines {
+  margin-top: 10px;
+  padding: 9px 11px;
+  max-height: 38vh;
+  overflow: auto;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--cft-text-dim);
+  background: #100e1a;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cft-ask-list {
+  margin-top: 10px;
+  max-height: 38vh;
+  overflow: auto;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 8px;
+  background: var(--cft-bg-2);
+}
+
+.cft-ask-list-title {
+  position: sticky;
+  top: 0;
+  padding: 6px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cft-text-dim);
+  background: var(--cft-bg-3);
+  border-bottom: 1px solid var(--cft-border-soft);
+}
+
+.cft-ask-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 11px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--cft-border-soft);
+}
+
+.cft-ask-list-row:last-child { border-bottom: 0; }
+
+.cft-ask-list-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cft-text);
+}
+
+.cft-ask-list-kind {
+  flex: none;
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 15px;
+  color: #cbb6ff;
+  background: var(--cft-accent-soft);
+  border: 1px solid rgba(139, 92, 246, 0.36);
+  border-radius: 4px;
+}
+
+.cft-ask-list-size {
+  flex: none;
+  color: var(--cft-text-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- 隔离区窗口（R11） */
+
+.cft-trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cft-trash-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--cft-bg-2);
+  border: 1px solid var(--cft-border-soft);
+  border-radius: var(--cft-radius);
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.cft-trash-row:hover { border-color: var(--cft-border); background: var(--cft-bg-3); }
+
+.cft-trash-info { flex: 1 1 auto; min-width: 0; }
+
+.cft-trash-stamp {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cft-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cft-trash-meta {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--cft-text-dim);
+}
+
+.cft-trash-root {
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--cft-text-mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cft-trash-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 「彻底删除」比「还原」小一号；hover 时加深警示色（报障 7） */
+.cft-trash-del { flex: none; white-space: nowrap; }
+.cft-trash-purge { flex: none; white-space: nowrap; }
+
+/* --------------------------- 同名副本 / 视频 / 自定义 标记（R13 / R14 / R15） */
+
+.cft-chip-dup {
+  color: #ffd28a;
+  background: rgba(224, 163, 60, 0.16);
+  border-color: rgba(224, 163, 60, 0.42);
+}
+
+.cft-chip-video {
+  color: #9fe0a8;
+  background: rgba(63, 185, 80, 0.14);
+  border-color: rgba(63, 185, 80, 0.38);
+}
+
+/* 收藏标记（⭐）：卡片角标与列表行 tag 共用 */
+.cft-chip-fav {
+  color: #ffd28a;
+  background: rgba(255, 210, 122, 0.14);
+  border-color: rgba(255, 210, 122, 0.42);
+}
+
+/* 「已在堆中」标记（报障 8）：标签筛选会把堆内 lora 带出来，灰蓝徽标 + 整体降透明，
+   hover 不再高亮成可选中态 —— 视觉上明确「看得到但选不了」。 */
+.cft-chip-instack {
+  color: #a9bcd4;
+  background: rgba(120, 144, 175, 0.14);
+  border-color: rgba(120, 144, 175, 0.4);
+}
+
+.cft-card.cft-instack,
+.cft-list-row.cft-instack { opacity: 0.62; }
+.cft-card.cft-instack:hover {
+  border-color: rgba(120, 144, 175, 0.4);
+  background: var(--cft-bg-2);
+}
+.cft-list-row.cft-instack:hover {
+  border-color: rgba(120, 144, 175, 0.4);
+  background: var(--cft-bg-2);
+}
+
+/* 顶层容器上的「这是副本之一」提示：只做一点描边，别喧宾夺主 */
+.cft-card-wrap.cft-dup .cft-card-body { border-color: rgba(224, 163, 60, 0.4); }
+.cft-list-row.cft-dup { border-color: rgba(224, 163, 60, 0.36); }
+.cft-stack-row.cft-dup { border-color: rgba(224, 163, 60, 0.36); }
+.cft-np-name.cft-dup { color: #ffd28a; }
+
+/* 视频缩略图：与同位置 <img> 同尺寸，去掉浏览器默认的黑色内边距 */
+.cft-thumb-video {
+  display: block;
+  object-fit: cover;
+  background: #0f0d18;
+}
+
+/* ------------------------------------------------- 详情：封面 / 视频（R14） */
+
+.cft-detail-stage { position: relative; }
+
+.cft-detail-img.cft-thumb-video {
+  width: 100%;
+  max-height: 460px;
+  background: #0f0d18;
+}
+
+.cft-detail-cover-hint {
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--cft-text-mute);
+  text-align: center;
+}
+
+/* 视频加载失败提示块：替代一个纯黑的空框（报障 3） */
+.cft-media-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ffd8c2;
+  background: rgba(224, 96, 60, 0.12);
+  border: 1px solid rgba(224, 96, 60, 0.42);
+  border-radius: 6px;
+}
+
+.cft-media-error-icon { flex: none; font-size: 14px; }
+.cft-media-error-text { flex: 1 1 auto; }
+
+/* 「我的标签」输入行：输入框 + 「＋ 添加」按钮（报障 1） */
+.cft-user-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.cft-user-input-row .cft-input { flex: 1 1 auto; }
+.cft-user-add { flex: none; white-space: nowrap; }
+
+.cft-gal-item {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.cft-gal-item .cft-gallery-item {
+  display: block;
+  width: 100%;
+  height: 62px;
+  object-fit: cover;
+  border: 1px solid var(--cft-border-soft);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.14s;
+}
+
+.cft-gal-item:hover .cft-gallery-item { border-color: var(--cft-accent); }
+
+/* 「设为封面」按钮：放在大图下侧（不再悬浮在缩略图上） */
+.cft-detail-set-cover {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-family: inherit;
+  line-height: 1.4;
+  color: #fff;
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+
+.cft-detail-set-cover:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.34);
+  border-color: var(--cft-accent);
+}
+
+.cft-detail-set-cover:disabled {
+  color: var(--cft-text-mute);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--cft-border-soft);
+  cursor: default;
+}
+
+/* 视频项左上角的 ▶ 角标 */
+.cft-gal-flag {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 15px;
+  color: #fff;
+  background: rgba(12, 10, 20, 0.72);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* ---------------------------------------- 详情：我的标签 / 说明（R15） */
+
+.cft-user-section .cft-section-title { flex-wrap: wrap; }
+
+.cft-user-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--cft-text-mute);
+}
+
+.cft-user-taglist { margin-bottom: 8px; }
+
+/* v2.19 全自动保存的状态字：平时写「自动保存」，存完短暂变绿「已保存 ✓」 */
+.cft-user-status {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--cft-text-mute);
+  transition: color 0.2s;
+}
+
+.cft-user-status-ok { color: var(--cft-ok); }
+
+.cft-user-empty {
+  font-size: 11.5px;
+  color: var(--cft-text-mute);
+}
+
+.cft-tag-user {
+  color: #c9b8ff;
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* 卡片自定义标签折叠芯片（v2.18）：「+N」，虚线边框提示未显完，悬停看完整列表 */
+.cft-tag-more {
+  border-style: dashed;
+  cursor: default;
+}
+
+.cft-tag-x {
+  margin-left: 5px;
+  font-size: 10px;
+  color: var(--cft-text-mute);
+  cursor: pointer;
+}
+
+.cft-tag-x:hover { color: var(--cft-danger); }
+
+.cft-input,
+.cft-textarea {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--cft-text);
+  background: #100e1a;
+  border: 1px solid var(--cft-border);
+  border-radius: 8px;
+  outline: none;
+}
+
+.cft-input:focus,
+.cft-textarea:focus { border-color: var(--cft-accent); }
+
+.cft-input { margin-bottom: 8px; }
+
+.cft-textarea {
+  display: block;
+  resize: vertical;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.cft-user-save { color: var(--cft-accent-hi); border-color: var(--cft-accent); }
+
+/* 详情窗「⭐ 收藏 / ★ 已收藏」按钮：未收藏态走通用小按钮样式；已收藏（data-fav="1"）
+   染成暖金色，跟卡片 / 列表行上的 ⭐ 徽标（.cft-chip-fav）保持同一色系。 */
+.cft-fav-btn[data-fav="1"] {
+  color: #ffd28a;
+  border-color: rgba(255, 210, 122, 0.42);
+}
+
+.cft-fav-btn[data-fav="1"]:hover {
+  background: rgba(255, 210, 122, 0.14);
+}
+
+/* ==========================================================================
+   v2.21 设置弹窗（C 站 API Key 配置 + 校验）
+   ========================================================================== */
+
+/* 设置按钮：复用通用 icon-btn，悬停时提到更亮的交互色，强调「可点」 */
+.cft-settings-btn { color: var(--cft-text-dim); flex: 0 0 auto; }
+.cft-settings-btn:hover { color: var(--cft-accent-hi); border-color: var(--cft-accent); background: rgba(139, 92, 246, 0.14); }
+
+.cft-settings-modal .cft-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+/* 说明文字 */
+.cft-settings-tip {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--cft-text-dim);
+}
+.cft-settings-tip-dim { color: var(--cft-text-mute); font-size: 12px; }
+
+/* 状态行：基础 + 四态配色 */
+.cft-api-status {
+  font-size: 12.5px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--cft-border-soft);
+  background: var(--cft-bg-2);
+  line-height: 1.5;
+}
+.cft-api-status-idle { color: var(--cft-text-mute); }
+.cft-api-status-pending { color: var(--cft-text-dim); border-color: var(--cft-accent); }
+.cft-api-status-ok {
+  color: var(--cft-ok);
+  border-color: rgba(63, 185, 80, 0.45);
+  background: rgba(63, 185, 80, 0.1);
+}
+.cft-api-status-err {
+  color: var(--cft-danger);
+  border-color: rgba(239, 74, 88, 0.45);
+  background: rgba(239, 74, 88, 0.1);
+}
+
+/* Key 输入框行：输入框吃满 + 显隐按钮 */
+.cft-settings-keyrow { display: flex; gap: 8px; align-items: stretch; }
+.cft-settings-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+  color: var(--cft-text);
+  background: var(--cft-bg);
+  border: 1px solid var(--cft-border);
+  border-radius: 8px;
+  outline: none;
+}
+.cft-settings-input:focus { border-color: var(--cft-accent); }
+.cft-settings-reveal { flex: 0 0 auto; width: 36px; font-size: 14px; }
+
+/* v2.22 语言切换行：中文 / English 即时切换 */
+.cft-settings-langrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--cft-border-soft);
+  margin-top: 2px;
+}
+.cft-settings-langlabel {
+  font-size: 12.5px;
+  color: var(--cft-text-dim);
+  margin-right: 4px;
+  min-width: 52px;
+}
+.cft-settings-langrow .cft-btn { flex: 0 0 auto; }
+
+/* v2.23 设置面板分组卡片：一组选项一张卡，后续加项只需再追加一张 */
+.cft-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--cft-border-soft);
+  border-left: 3px solid var(--cft-accent);
+  border-radius: 10px;
+  background: var(--cft-bg-3);
+}
+.cft-settings-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--cft-text);
+}
+.cft-settings-section-desc {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--cft-text-dim);
+}
+.cft-settings-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* 卡片内的状态行用更深一档底色，和卡片本身拉开层次 */
+.cft-settings-section .cft-api-status { background: var(--cft-bg); }
+
+/* 危险操作行（清除 API Key）：只在确实有 Key 时显示 */
+.cft-settings-dangerrow {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+.cft-settings-clear {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* v2.27：标签栏修复的按钮行（窄屏自动换行） */
+.cft-settings-btnrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cft-settings-btnrow .cft-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+/* v2.30：API 卡片内的「验证 / 保存」行 —— 与上方字段用一条虚线分隔，
+   按钮整体靠右，底部不留多余空白 */
+.cft-settings-apibtnrow {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--cft-line, rgba(255, 255, 255, 0.12));
+  justify-content: flex-end;
+}
+
+/* 卡片内的语言行不再需要顶部虚线（它本身就是一节） */
+.cft-settings-section .cft-settings-langrow {
+  padding-top: 0;
+  border-top: none;
+  margin-top: 0;
+}

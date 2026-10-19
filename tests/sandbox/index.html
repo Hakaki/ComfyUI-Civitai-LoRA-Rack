@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CFT-LoraStack DOM 沙盒</title>
+  <style>
+    html, body { margin: 0; height: 100%; }
+    #host { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+    #report {
+      position: fixed; left: 0; top: 0; right: 0; bottom: 0;
+      margin: 0; padding: 12px; overflow: auto;
+      font: 12px/1.5 Consolas, monospace; white-space: pre-wrap;
+      background: #0b0a12; color: #d8d3ea; z-index: 999999;
+    }
+    /* 沙盒专用：禁用动画/过渡。
+       .cft-modal 的入场动画 cft-rise 带 translateY(10px) scale(0.995)，
+       动画未结束时 getBoundingClientRect() 量到的是变换后的值，
+       会让「恢复尺寸」「越界夹紧」等断言伪失败。 */
+    * { animation: none !important; transition: none !important; }
+  </style>
+</head>
+<body>
+  <div id="host"></div>
+  <pre id="report">RUNNING…</pre>
+  <script>
+    // 把页面级错误/未处理拒绝写进 #report，便于 --dump-dom 时看到（否则只显示 RUNNING…）。
+    // 同时 POST 到 /__report：新版 Chrome 在 Windows 上 --dump-dom 不再写 stdout，
+    // 报告改由这条通道回传给 run_sandbox.mjs。
+    function postReport(text) {
+      try { fetch("/__report", { method: "POST", body: text }); } catch (_) { /* ignore */ }
+    }
+    function showErr(tag, err) {
+      const text = tag + ": " + (err && err.stack ? err.stack : String(err));
+      const r = document.getElementById("report");
+      if (r) r.textContent = text;
+      postReport(text);
+    }
+    window.addEventListener("error", (e) => showErr("PAGE_ERROR", e.error || e.message));
+    window.addEventListener("unhandledrejection", (e) => showErr("UNHANDLED_REJECTION", e.reason));
+  </script>
+  <script type="module" src="./sandbox.js"></script>
+</body>
+</html>

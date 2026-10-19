@@ -1,0 +1,28 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# ---- 本地配置 / 用户数据（绝不入库）----
+config.json
+*.local.json
+*.tmp
+
+# ---- 测试产物 / 临时输出 ----
+# 开发用的诊断脚本与内部验收已移出本目录，规则保留用于防回归
+tests/.shots/
+outputs/
+shots/
+*.log
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

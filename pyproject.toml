@@ -1,0 +1,26 @@
+[project]
+name = "ComfyUI-Civitai-LoRA-Rack"
+version = "2.36.0"
+description = "Manage a whole stack of LoRAs on one ComfyUI node, with Civitai metadata, sample images and trigger words."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "ComfyUI-Civitai-LoRA-Rack contributors" }]
+keywords = ["comfyui", "lora", "civitai", "custom-node"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = ["requests"]
+
+[project.urls]
+Repository = "https://github.com/Hakaki/ComfyUI-Civitai-LoRA-Rack"
+"Bug Tracker" = "https://github.com/Hakaki/ComfyUI-Civitai-LoRA-Rack/issues"
+
+# ComfyUI Registry 元数据。PublisherId 需与 registry.comfy.org 上注册的
+# 发布者账号一致（本仓库为 @hakaki，2026-10-19 已注册）。
+[tool.comfy]
+PublisherId = "hakaki"
+DisplayName = "Civitai LoRA Rack (CLR)"
+Icon = ""
