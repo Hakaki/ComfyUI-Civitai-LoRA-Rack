@@ -1,5 +1,5 @@
 [project]
-name = "ComfyUI-Civitai-LoRA-Rack"
+name = "civitai-lora-rack"
 version = "2.36.0"
 description = "Manage a whole stack of LoRAs on one ComfyUI node, with Civitai metadata, sample images and trigger words."
 readme = "README.md"
