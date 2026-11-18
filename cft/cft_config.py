@@ -15,9 +15,14 @@
   "site_domain": "civitai.com",
   "proxy_enabled": false,
   "proxy_address": "",
-  "extra_loras_dirs": []
+  "extra_loras_dirs": [],
+  "anima_legacy_remap": true
 }
 ```
+
+``anima_legacy_remap`` 控制旧版 Anima LoRA 的块序号重映射（见 :mod:`cft_anima`）：
+开启时，28 块布局的 LoRA 接到 40 / 52 块模型上会自动换算层号；关闭则原样加载，
+便于做 A/B 对比。
 
 设计原则：
 - 只读本机、不上传；API Key 不会出现在任何日志或接口响应里（只回脱敏值）。
@@ -34,6 +39,7 @@ from typing import Any, Dict, List, Optional
 __all__ = [
     "get_config",
     "get_status",
+    "get_anima_remap_enabled",
     "get_api_key",
     "get_api_key_masked",
     "get_proxy",
@@ -61,6 +67,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "proxy_enabled": False,
     "proxy_address": "",
     "extra_loras_dirs": [],
+    # 旧版 Anima LoRA（28 块）接到 40 / 52 块模型时自动换算层号，默认开启
+    "anima_legacy_remap": True,
 }
 
 
@@ -196,6 +204,11 @@ def get_site_domain() -> str:
     """C 站域名；用户可填镜像站。"""
     domain = str(get_config().get("site_domain") or "").strip()
     return domain or DEFAULT_SITE_DOMAIN
+
+
+def get_anima_remap_enabled() -> bool:
+    """是否启用旧版 Anima LoRA 块序号重映射（默认开启）。"""
+    return bool(get_config().get("anima_legacy_remap", True))
 
 
 def resolve_loras_dirs() -> List[str]:

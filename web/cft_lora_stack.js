@@ -52,7 +52,7 @@ const API_BASE = "/cft_lora";
  * 「代码明明改了却没效果」是最难查的一类问题（记得 Ctrl+Shift+R 强刷）。
  * 每轮改动前端后请同步 +1。
  */
-const FRONTEND_VERSION = "2.36";
+const FRONTEND_VERSION = "2.37";
 const NODE_CLASS = "CFTLoraStack";
 /** 单条加载器节点（插槽名翻译也要覆盖它） */
 const NODE_CLASS_LOADER = "CFTLoraLoader";

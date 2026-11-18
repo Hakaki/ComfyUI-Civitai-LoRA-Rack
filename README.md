@@ -33,6 +33,7 @@ CLR puts the whole stack on **one** node:
 | **Batch lookup** | One click fills in author / tags / trigger words for every LoRA in the list that has no Civitai metadata yet |
 | **Garbage cleanup** | Finds orphaned previews / metadata sidecars / partial downloads / empty files, moves them to a quarantine folder (restorable) |
 | **Your own notes** | Custom tags, description and cover image per LoRA — stored locally and never overwritten by a Civitai refresh |
+| **Anima compatibility** | Legacy 28-block Anima LoRAs are automatically block-remapped when loaded against Anima 2.9B (40 blocks) / 3.8B (52 blocks) models; **the LoRA file is never converted** |
 | **Bilingual UI** | 中文 / English, switchable in settings and remembered per browser |
 
 ![Picker](docs/screenshots/usage_picker.png)
@@ -91,13 +92,15 @@ Optional fields in the same file:
   "site_domain": "civitai.com",
   "proxy_enabled": false,
   "proxy_address": "http://127.0.0.1:7890",
-  "extra_loras_dirs": []
+  "extra_loras_dirs": [],
+  "anima_legacy_remap": true
 }
 ```
 
 - `site_domain` — point at a mirror if `civitai.com` is unreachable from your network
 - `proxy_enabled` / `proxy_address` — route only CLR's requests through a proxy
 - `extra_loras_dirs` — extra folders to scan, if your LoRAs live outside `ComfyUI/models/loras`
+- `anima_legacy_remap` — automatic block-index remap for legacy Anima LoRAs, on by default; set to `false` to load files untouched for A/B comparison
 
 **You do not need an API key to use the node.** Without one you still get everything that lives on disk — it only disables "refresh from Civitai" for files that have no local metadata.
 
@@ -122,6 +125,8 @@ Preview images are found as `<name>.preview.png`, `<name>.preview.jpg`, `<name>.
 
 **ComfyUI 1.5x Vue nodes** — supported. The `lora_stack` field is hidden in both the legacy canvas and the Vue renderer.
 
+**My legacy Anima LoRA seems to do nothing on Anima 2.9B.** Anima 2.9B (40 blocks) and 3.8B (52 blocks) insert new blocks **between** the original 28, so old block indices point at unrelated layers — and ComfyUI emits no missing-key warning. CLR remaps the block indices at load time (one `Anima 块映射` log line) and never rewrites the file. Because the inserted blocks have no counterpart in the old LoRA, start around 0.5–0.7 strength. Set `anima_legacy_remap: false` to A/B the raw behaviour.
+
 ## Development
 
 ```bash
@@ -129,6 +134,7 @@ Preview images are found as `<name>.preview.png`, `<name>.preview.jpg`, `<name>.
 python tests/test_metadata.py
 python tests/test_plugin.py
 python tests/test_cleanup.py
+python tests/test_anima_remap.py
 
 # frontend DOM sandbox (needs a local Chrome)
 node tests/run_sandbox.mjs

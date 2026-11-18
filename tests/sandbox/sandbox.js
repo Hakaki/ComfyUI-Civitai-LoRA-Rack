@@ -1291,7 +1291,7 @@ async function main() {
     check("R12 openCleanup 入口存在", typeof T.openCleanup === "function");
     check("R12 CleanupModal 已导出", typeof T.CleanupModal === "function");
     check("R12 ContextMenu 已导出", typeof T.ContextMenu === "object" || typeof T.ContextMenu?.open === "function");
-    check("R12 前端版本号已升到 2.36", T.FRONTEND_VERSION === "2.36", T.FRONTEND_VERSION);
+    check("R12 前端版本号已升到 2.37", T.FRONTEND_VERSION === "2.37", T.FRONTEND_VERSION);
 
     // Store 层直连：确认请求路径与参数正确
     const before = (globalThis.__CFT_CALLS__ || []).length;
@@ -1616,7 +1616,7 @@ async function main() {
 
   /* ============ R18：版本号与新导出面 ============ */
   {
-    check("R18 前端版本号 = 2.36", T.FRONTEND_VERSION === "2.36", T.FRONTEND_VERSION);
+    check("R18 前端版本号 = 2.37", T.FRONTEND_VERSION === "2.37", T.FRONTEND_VERSION);
     check("R18 TrashModal 已导出", typeof T.TrashModal === "function");
     check("R18 openTrash 入口存在", typeof T.openTrash === "function");
     check("R18 askChoice / askConfirm / showInfoModal 已导出", typeof T.askChoice === "function" && typeof T.askConfirm === "function" && typeof T.showInfoModal === "function");

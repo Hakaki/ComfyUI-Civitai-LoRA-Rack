@@ -17,6 +17,10 @@
 
 ``hidden`` 为 true 时该条目不参与加载（前端显隐开关）。
 ``trigger_weight`` 大于 0 时，该 lora 的触发词会被拼进 ``trigger_words`` 输出。
+
+加载时还会做一层 Anima 兼容：旧版 28 块布局的 LoRA 接到 40 / 52 块模型上时，
+自动按社区公开的插入表换算块序号（见 :mod:`cft_anima`），LoRA 文件本身不做任何
+转换；映射失败只会跳过映射原样加载，不会让整堆加载中断。
 """
 
 from __future__ import annotations
@@ -86,6 +90,23 @@ def _apply_lora(model, clip, lora_weights, strength_model: float, strength_clip:
         new_clip.add_patches(loaded, strength_clip)
 
     return new_model, new_clip
+
+
+def _remap_anima(weights, model, name: str):
+    """Anima 旧版 LoRA 块序号兼容；任何异常都降级为原样加载，不阻断整堆。"""
+    try:
+        from . import cft_anima
+
+        if not cft_anima.enabled():
+            return weights
+
+        new_weights, report = cft_anima.remap_weights(weights, model, name)
+        if report:
+            logger.info("[Civitai-LoRA-Rack] %s", report)
+        return new_weights
+    except Exception as exc:
+        logger.warning("[Civitai-LoRA-Rack] Anima 块映射已跳过 %s：%s", name, exc)
+        return weights
 
 
 def _parse_stack(raw: Any) -> List[Dict[str, Any]]:
@@ -229,6 +250,7 @@ class CFTLoraStack:
 
             try:
                 weights = _load_torch_file_cached(abs_path)
+                weights = _remap_anima(weights, out_model, rel)
                 out_model, out_clip = _apply_lora(out_model, out_clip, weights, strength_model, strength_clip)
                 logger.info(
                     "[Civitai-LoRA-Rack] 已应用 %s (model=%.3f, clip=%.3f)",
@@ -278,5 +300,6 @@ class CFTLoraLoader:
             return (clip, model)
 
         weights = _load_torch_file_cached(abs_path)
+        weights = _remap_anima(weights, model, lora_name)
         out_model, out_clip = _apply_lora(model, clip, weights, strength_model, strength_clip)
         return (out_clip, out_model)
