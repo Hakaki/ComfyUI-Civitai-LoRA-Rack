@@ -2409,3 +2409,38 @@
   border-top: none;
   margin-top: 0;
 }
+
+/* v2.38：开关行（Anima 兼容等布尔配置）
+   布局：[开关] 标题 …………… 右侧状态（已开启 / 已关闭） */
+.cft-settings-switchrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 0;
+}
+.cft-settings-switchlabel {
+  font-size: 12.5px;
+  color: var(--cft-text);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cft-settings-switch-state {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cft-border-soft);
+  color: var(--cft-text-mute);
+  background: var(--cft-bg);
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+}
+.cft-settings-switch-on {
+  color: var(--cft-ok);
+  border-color: rgba(63, 185, 80, 0.45);
+  background: rgba(63, 185, 80, 0.1);
+}
+/* 写盘过程中禁止连点（JS 里也会 disabled，这里给个视觉反馈） */
+.cft-settings-switchrow .cft-switch input:disabled + .cft-switch-track {
+  opacity: 0.55;
+  cursor: progress;
+}

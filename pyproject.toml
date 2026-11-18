@@ -1,6 +1,6 @@
 [project]
 name = "civitai-lora-rack"
-version = "2.37.0"
+version = "2.38.0"
 description = "Manage a whole stack of LoRAs on one ComfyUI node, with Civitai metadata, sample images and trigger words."
 readme = "README.md"
 requires-python = ">=3.9"

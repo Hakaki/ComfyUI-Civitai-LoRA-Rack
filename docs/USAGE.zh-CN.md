@@ -64,7 +64,7 @@
 ### 顶部
 
 - **＋ 添加 Lora** —— 打开选择器
-- **⚙ 设置** —— API Key 与语言
+- **⚙ 设置** —— API Key、语言、Anima 兼容开关
 
 ### 每一行
 
@@ -122,7 +122,7 @@
 | **↻ 刷新**            | 重新扫描模型目录（磁盘上新加 / 删了文件后用）                |
 | **🔍 批量查 C 站**      | 见本节末尾「批量查 C 站」                          |
 | **🧹 清理垃圾**         | 见第七节                                    |
-| **⚙ 设置**            | API Key / 语言                            |
+| **⚙ 设置**            | API Key / 语言 / Anima 开关                |
 | **▦ 卡片** / **☰ 列表** | 两种视图，选择会记住                              |
 | **− N ＋**           | 卡片尺寸，选择会记住                              |
 
@@ -265,6 +265,22 @@ Key 保存在本机 `ComfyUI/user/default/Civitai-LoRA-Rack/config.json` 的 `ap
 
 Key 在 <https://civitai.com/user/account> → API Keys 申请。
 
+### Anima 兼容（旧版 LoRA 块映射）
+
+一个开关 + 一段说明，控制**旧版 Anima LoRA 接到新模型时要不要换算层号**，默认开启。
+
+| 情况 | 不换算会怎样 |
+|---|---|
+| 28 块 LoRA → 40 块模型（Anima 2.9B） | block 2~27 全打在错位的层上 |
+| 28 块 LoRA → 52 块模型（Anima 3.8B） | 同上，错得更远 |
+
+原因是 Anima 2.9B / 3.8B 在原始 28 块模型**中间插入了新块**扩容，旧 LoRA 的层号会整体偏移。麻烦的是 **ComfyUI 不会报任何「key 未加载」警告**（旧层号在新模型里都存在），表现是「感觉没生效、调高权重反而更糊」。
+
+- **开**（默认）：加载时在内存里把层号换算到目标模型，日志出现 `[Civitai-LoRA-Rack] Anima 块映射 ...` 一行。LoRA 文件不会被修改。
+- **关**：按原始层号加载，用来做 A/B 对照。
+- 只影响 Anima 系模型；其他模型、文本编码器、`llm_adapter` 的权重一律不动。
+- 因为插入块在旧 LoRA 里没有对应权重，映射后**权重建议从 0.5~0.7 起步**，不要直接用 1.0。
+
 ### 同一个配置文件里的其他字段
 
 设置面板没做 UI 的项，可以直接编辑这个 json：
@@ -275,7 +291,8 @@ Key 在 <https://civitai.com/user/account> → API Keys 申请。
   "site_domain": "civitai.com",
   "proxy_enabled": false,
   "proxy_address": "http://127.0.0.1:7890",
-  "extra_loras_dirs": []
+  "extra_loras_dirs": [],
+  "anima_legacy_remap": true
 }
 ```
 
@@ -284,6 +301,7 @@ Key 在 <https://civitai.com/user/account> → API Keys 申请。
 | `site_domain`                     | 连不上 `civitai.com` 时指向镜像站                           |
 | `proxy_enabled` + `proxy_address` | 只让本插件的请求走代理，不影响 ComfyUI 其他请求                       |
 | `extra_loras_dirs`                | LoRA 不在 `ComfyUI/models/loras` 下时，补充扫描目录（数组，写绝对路径） |
+| `anima_legacy_remap`              | 旧版 Anima LoRA 块映射，默认 `true`；设置面板里的开关就是改这一项            |
 
 改完重启 ComfyUI 生效。
 

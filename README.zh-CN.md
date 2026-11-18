@@ -100,7 +100,7 @@ git clone https://github.com/Hakaki/ComfyUI-Civitai-LoRA-Rack
 - `site_domain` —— 连不上 `civitai.com` 时指向镜像站
 - `proxy_enabled` / `proxy_address` —— 只让本插件的请求走代理
 - `extra_loras_dirs` —— LoRA 不在 `ComfyUI/models/loras` 时，补充扫描目录
-- `anima_legacy_remap` —— 旧版 Anima LoRA 的块序号自动换算，默认 `true`；设 `false` 可原样加载做 A/B 对比
+- `anima_legacy_remap` —— 旧版 Anima LoRA 的块序号自动换算，默认 `true`；设置面板里也有同一个开关（**设置 → Anima 兼容**），设 `false` 可原样加载做 A/B 对比
 
 **不填 Key 也能用。** 没有 Key 时，所有能离线读到的东西照常显示，只是「从 C 站刷新」对没有本地元数据的文件不可用。
 
@@ -125,7 +125,7 @@ git clone https://github.com/Hakaki/ComfyUI-Civitai-LoRA-Rack
 
 **支持 ComfyUI 1.5x 的 Vue 节点吗？** 支持。`lora_stack` 字段在经典画布和 Vue 渲染下都会隐藏。
 
-**旧版 Anima LoRA 加到 2.9B 上感觉没效果？** Anima 2.9B（40 块）和 3.8B（52 块）是在原始 28 块模型**中间插层**扩容的，旧 LoRA 的层号会整体错位，而 ComfyUI 不会报任何「key 未加载」警告。CLR 加载时会自动把层号换算到目标模型（日志里有一行 `Anima 块映射`），**不写回、不转换 LoRA 文件**。因为插入了新块，建议权重从 1.0 降到 0.5~0.7 起步。想对比效果可在配置里把 `anima_legacy_remap` 设为 `false`。
+**旧版 Anima LoRA 加到 2.9B 上感觉没效果？** Anima 2.9B（40 块）和 3.8B（52 块）是在原始 28 块模型**中间插层**扩容的，旧 LoRA 的层号会整体错位，而 ComfyUI 不会报任何「key 未加载」警告。CLR 加载时会自动把层号换算到目标模型（日志里有一行 `Anima 块映射`），**不写回、不转换 LoRA 文件**。因为插入了新块，建议权重从 1.0 降到 0.5~0.7 起步。想对比效果可在**设置 → Anima 兼容**里把这个开关关掉（等价于配置里把 `anima_legacy_remap` 设为 `false`）。
 
 ## 开发
 

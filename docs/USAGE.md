@@ -66,7 +66,7 @@ The rack window is **per node**: two CLR nodes can each have their own rack wind
 ### Header
 
 - **＋ Add Lora** — opens the picker
-- **⚙ Settings** — API key and language
+- **⚙ Settings** — API key, language, Anima Compatibility toggle
 
 ### Each row
 
@@ -124,7 +124,7 @@ The rack window is **per node**: two CLR nodes can each have their own rack wind
 | **↻ Refresh** | Rescan the model directory (after adding/removing files on disk) |
 | **🔍 Batch Civitai lookup** | See below |
 | **🧹 Clean junk** | See section 7 |
-| **⚙ Settings** | API key / language |
+| **⚙ Settings** | API key / language / Anima toggle |
 | **▦ Cards** / **☰ List** | Two views; the choice is remembered |
 | **− N ＋** | Card size; remembered |
 
@@ -269,6 +269,22 @@ The key is stored on this machine in `ComfyUI/user/default/Civitai-LoRA-Rack/con
 
 Get a key at <https://civitai.com/user/account> → API Keys.
 
+### Anima Compatibility (legacy LoRA block remap)
+
+A single toggle plus an explanation. It controls **whether layer indices are remapped when a legacy Anima LoRA is applied to a newer model**, and it is on by default.
+
+| Case | What happens without remapping |
+|---|---|
+| 28-block LoRA → 40-block model (Anima 2.9B) | blocks 2–27 land on unrelated layers |
+| 28-block LoRA → 52-block model (Anima 3.8B) | same, further off |
+
+The reason: Anima 2.9B / 3.8B are depth expansions that **insert new blocks between** the original 28, so legacy LoRA layer numbers are offset. The nasty part is that **ComfyUI reports no missing-key warning** — the old indices all exist in the new model — so the symptom is "the LoRA seems to do nothing, and raising the weight only makes the image muddier".
+
+- **On** (default): block indices are converted to the target model in memory at load time, and a `[Civitai-LoRA-Rack] Anima 块映射 ...` line appears in the console. The LoRA file is never modified.
+- **Off**: load with the raw layer indices, for A/B comparison.
+- Only Anima-family models are affected; other models, the text encoder and `llm_adapter` weights are never touched.
+- Because the inserted blocks have no counterpart in the old LoRA, **start around 0.5–0.7 strength** after remapping rather than 1.0.
+
 ### Other fields in the same file
 
 Options without a UI can be edited directly in that json:
@@ -279,7 +295,8 @@ Options without a UI can be edited directly in that json:
   "site_domain": "civitai.com",
   "proxy_enabled": false,
   "proxy_address": "http://127.0.0.1:7890",
-  "extra_loras_dirs": []
+  "extra_loras_dirs": [],
+  "anima_legacy_remap": true
 }
 ```
 
@@ -288,6 +305,7 @@ Options without a UI can be edited directly in that json:
 | `site_domain` | Point at a mirror if `civitai.com` is unreachable from your network |
 | `proxy_enabled` + `proxy_address` | Route only CLR's requests through a proxy — ComfyUI's other traffic is unaffected |
 | `extra_loras_dirs` | Extra directories to scan, if your LoRAs live outside `ComfyUI/models/loras` (array of absolute paths) |
+| `anima_legacy_remap` | Legacy Anima LoRA block remap, `true` by default — the Settings toggle writes this very field |
 
 Restart ComfyUI after editing.
 

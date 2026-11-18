@@ -112,15 +112,37 @@ def register_routes() -> bool:
 
     @routes.post(PREFIX + "/config/set")
     async def cft_config_set(request: web.Request) -> web.Response:
-        """写入 C 站 API Key（merge 进插件自己的 config.json，不覆盖其他字段）。"""
+        """写入插件配置（merge 进 config.json，不覆盖其他字段）。
+
+        支持字段：
+        - ``api_key`` —— C 站 API Key（**只有请求体里显式带这个键才写**，
+          否则会把已存的 Key 静默清空）
+        - ``anima_legacy_remap`` —— 旧版 Anima LoRA 块映射开关（bool）
+        """
         try:
             body = await request.json()
         except Exception:
             body = {}
-        api_key = str((body or {}).get("api_key") or "").strip()
+        if not isinstance(body, dict):
+            body = {}
+
+        keys = ("api_key", "anima_legacy_remap")
+        if not any(k in body for k in keys):
+            return _err("没有可写入的配置字段", 400)
+
         try:
-            status = cft_config.set_api_key(api_key)
-            return _ok(status)
+            status = None
+            if "api_key" in body:
+                status = cft_config.set_api_key(str(body.get("api_key") or "").strip())
+            if "anima_legacy_remap" in body:
+                flag = body.get("anima_legacy_remap")
+                if isinstance(flag, str):
+                    # 兼容 "false" / "0" / "off" 这类字符串（JSON 里正常是布尔）
+                    enabled = flag.strip().lower() not in ("", "0", "false", "no", "off")
+                else:
+                    enabled = bool(flag)
+                status = cft_config.set_anima_remap_enabled(enabled)
+            return _ok(status if status is not None else cft_config.get_status())
         except Exception as exc:
             logger.exception("[Civitai-LoRA-Rack] 写入配置失败")
             return _err(str(exc), 500)

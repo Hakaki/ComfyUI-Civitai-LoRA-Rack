@@ -42,7 +42,7 @@ function checkVideoThumbShape(tag, item) {
 
 /* ----------------------------------------------------------- 假数据 / 假后端 */
 
-const FAKE = { version: 0, resolved: new Set(), apiKey: "" };
+const FAKE = { version: 0, resolved: new Set(), apiKey: "", animaRemap: true };
 /** window.prompt 被调用的次数（R19 护栏：必须始终为 0） */
 let PROMPT_CALLS = 0;
 
@@ -201,16 +201,21 @@ globalThis.__CFT_HANDLE__ = async (url, opts) => {
       site_domain: "civitai.com",
       has_api_key: Boolean(FAKE.apiKey),
       api_key_masked: FAKE.apiKey.length >= 4 ? "*".repeat(8) + FAKE.apiKey.slice(-4) : "",
+      anima_legacy_remap: FAKE.animaRemap !== false,
     } });
   }
   if (path === "/cft_lora/config/set") {
     const body = opts && opts.body ? JSON.parse(opts.body) : {};
-    FAKE.apiKey = (body.api_key || "").trim();
+    // 复刻后端语义（v2.38）：只有显式带 api_key 键才动 Key，
+    // 只有显式带 anima_legacy_remap 才动开关 —— 互不牵连。
+    if (Object.prototype.hasOwnProperty.call(body, "api_key")) FAKE.apiKey = (body.api_key || "").trim();
+    if (Object.prototype.hasOwnProperty.call(body, "anima_legacy_remap")) FAKE.animaRemap = Boolean(body.anima_legacy_remap);
     return resp({ ok: true, data: {
       found: true,
       site_domain: "civitai.com",
       has_api_key: Boolean(FAKE.apiKey),
       api_key_masked: FAKE.apiKey.length >= 4 ? "*".repeat(8) + FAKE.apiKey.slice(-4) : "",
+      anima_legacy_remap: FAKE.animaRemap !== false,
     } });
   }
   if (path === "/cft_lora/config/test") {
@@ -1291,7 +1296,7 @@ async function main() {
     check("R12 openCleanup 入口存在", typeof T.openCleanup === "function");
     check("R12 CleanupModal 已导出", typeof T.CleanupModal === "function");
     check("R12 ContextMenu 已导出", typeof T.ContextMenu === "object" || typeof T.ContextMenu?.open === "function");
-    check("R12 前端版本号已升到 2.37", T.FRONTEND_VERSION === "2.37", T.FRONTEND_VERSION);
+    check("R12 前端版本号已升到 2.38", T.FRONTEND_VERSION === "2.38", T.FRONTEND_VERSION);
 
     // Store 层直连：确认请求路径与参数正确
     const before = (globalThis.__CFT_CALLS__ || []).length;
@@ -1616,7 +1621,7 @@ async function main() {
 
   /* ============ R18：版本号与新导出面 ============ */
   {
-    check("R18 前端版本号 = 2.37", T.FRONTEND_VERSION === "2.37", T.FRONTEND_VERSION);
+    check("R18 前端版本号 = 2.38", T.FRONTEND_VERSION === "2.38", T.FRONTEND_VERSION);
     check("R18 TrashModal 已导出", typeof T.TrashModal === "function");
     check("R18 openTrash 入口存在", typeof T.openTrash === "function");
     check("R18 askChoice / askConfirm / showInfoModal 已导出", typeof T.askChoice === "function" && typeof T.askConfirm === "function" && typeof T.showInfoModal === "function");
@@ -4032,7 +4037,7 @@ async function main() {
     const titleOf = (s) => (s.querySelector(".cft-settings-section-title")?.textContent || "").trim();
     const titles = sections.map(titleOf);
 
-    check("R44 设置只剩两组（语言 / C 站 API Key）", sections.length === 2, JSON.stringify(titles));
+    check("R44 设置只剩功能分组（语言 / C 站 API Key / Anima 兼容）", sections.length === 3, JSON.stringify(titles));
     check("R44 不再出现「工作流标签栏」分组", !titles.includes("工作流标签栏"), JSON.stringify(titles));
 
     const apiSec = sections.find((s) => titleOf(s) === "C 站 API Key");
@@ -4064,8 +4069,8 @@ async function main() {
     const secEn = seEn ? [...seEn.querySelectorAll(".cft-settings-section")] : [];
     const titlesEn = secEn.map(titleOf);
     check(
-      "R44 英文下仍是两组且无 tab bar 分组",
-      secEn.length === 2 && !titlesEn.includes("Workflow tab bar"),
+      "R44 英文下仍是三组且无 tab bar 分组",
+      secEn.length === 3 && !titlesEn.includes("Workflow tab bar"),
       JSON.stringify(titlesEn)
     );
     const btnsEn = secEn[1]
@@ -4340,6 +4345,140 @@ async function main() {
       if (prevApp2 === undefined) delete globalThis.app;
       else globalThis.app = prevApp2;
     }
+  }
+
+  /* ============ R48：v2.38 设置面板「Anima 兼容」开关 ============ */
+  {
+    T.setLang("zh");
+    FAKE.animaRemap = true;
+    T.Store._config = null;
+    T.openSettings();
+    await tick(180);
+
+    const se = document.querySelector(".cft-settings-modal");
+    const sections = se ? [...se.querySelectorAll(".cft-settings-section")] : [];
+    const titleOf = (s) => (s.querySelector(".cft-settings-section-title")?.textContent || "").trim();
+    const titles = sections.map(titleOf);
+
+    const animaSec = sections.find((s) => titleOf(s) === "Anima 兼容");
+    check("R48 设置面板有「Anima 兼容」分组", !!animaSec, JSON.stringify(titles));
+    check(
+      "R48 新分组排在最后（不打断语言 / API Key 的原有顺序）",
+      !!animaSec && sections.indexOf(animaSec) === sections.length - 1,
+      JSON.stringify(titles)
+    );
+
+    const swInput = animaSec?.querySelector(".cft-settings-switchrow .cft-switch input[type=checkbox]");
+    check("R48 开关是真实 checkbox（复用 .cft-switch 样式）", !!swInput);
+    check("R48 默认开启（后端 anima_legacy_remap=true）", !!swInput && swInput.checked === true);
+
+    const desc = animaSec?.querySelector(".cft-settings-section-desc")?.textContent || "";
+    check(
+      "R48 说明讲清了开关含义（28 / 40 / 52 块错位）",
+      /28/.test(desc) && /40/.test(desc) && /52/.test(desc) && /层号/.test(desc),
+      desc.slice(0, 60)
+    );
+    const tip = animaSec?.querySelector(".cft-settings-tip")?.textContent || "";
+    check("R48 补充说明提到 A/B 对比与不影响其他模型", /A\/B/.test(tip) && /llm_adapter/.test(tip), tip.slice(0, 60));
+
+    const stateEl = animaSec?.querySelector(".cft-settings-switch-state");
+    check("R48 状态徽标显示「已开启」", stateEl?.textContent === "已开启", stateEl?.textContent);
+
+    // 关掉：必须只写 anima_legacy_remap，绝不能顺手清掉已存的 API Key
+    const setCalls = [];
+    const prevHandler = globalThis.__CFT_HANDLE__;
+    globalThis.__CFT_HANDLE__ = async (url, opts) => {
+      if (String(url).includes("/config/set") && opts && opts.body) setCalls.push(JSON.parse(opts.body));
+      return prevHandler(url, opts);
+    };
+    try {
+      if (swInput) {
+        swInput.checked = false;
+        swInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      await tick(240);
+      check(
+        "R48 关掉开关只写 anima_legacy_remap（不误改 api_key）",
+        setCalls.length === 1 && setCalls[0].anima_legacy_remap === false && !("api_key" in setCalls[0]),
+        JSON.stringify(setCalls)
+      );
+      check("R48 关掉后后端状态=关闭", FAKE.animaRemap === false);
+      const stateEl2 = document.querySelector(".cft-settings-modal .cft-settings-switch-state");
+      check("R48 关掉后徽标变「已关闭」", stateEl2?.textContent === "已关闭", stateEl2?.textContent);
+
+      // 再开回来
+      setCalls.length = 0;
+      const sw2 = document.querySelector(".cft-settings-modal .cft-settings-switchrow .cft-switch input[type=checkbox]");
+      if (sw2) {
+        sw2.checked = true;
+        sw2.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      await tick(240);
+      check("R48 再开回来写盘 anima_legacy_remap=true", setCalls.length === 1 && setCalls[0].anima_legacy_remap === true, JSON.stringify(setCalls));
+    } finally {
+      globalThis.__CFT_HANDLE__ = prevHandler;
+    }
+
+    // 英文：标题 / 说明 / 开关名 / 状态徽标全部翻译（防「英文模式残留中文」）
+    T.setLang("en");
+    await tick(220);
+    const seEn = document.querySelector(".cft-settings-modal");
+    const secsEn = seEn ? [...seEn.querySelectorAll(".cft-settings-section")] : [];
+    const animaEn = secsEn.find((s) => titleOf(s) === "Anima Compatibility");
+    check("R48 英文下分组标题已翻译", !!animaEn, JSON.stringify(secsEn.map(titleOf)));
+    const descEnTxt = animaEn?.querySelector(".cft-settings-section-desc")?.textContent || "";
+    check(
+      "R48 英文下说明已翻译（无中文残留）",
+      descEnTxt.length > 40 && !/[\u4e00-\u9fff]/.test(descEnTxt),
+      descEnTxt.slice(0, 60)
+    );
+    const lblEn = animaEn?.querySelector(".cft-settings-switchlabel")?.textContent || "";
+    check("R48 英文下开关名已翻译", lblEn === "Legacy Anima LoRA block remap", lblEn);
+    const stEn = animaEn?.querySelector(".cft-settings-switch-state")?.textContent || "";
+    check("R48 英文下状态徽标已翻译", stEn === "On" || stEn === "Off", stEn);
+
+    T.setLang("zh");
+    await tick(120);
+
+    /* 版本护栏：前端热更新、后端 py 未重启时，/config 不会带 anima_legacy_remap。
+       此时开关必须禁用 —— 旧版 /config/set 只认 api_key，发过去等于清空用户 Key。 */
+    {
+      const prev2 = globalThis.__CFT_HANDLE__;
+      const calls = [];
+      globalThis.__CFT_HANDLE__ = async (url, opts) => {
+        if (pathOf(url) === "/cft_lora/config/set" && opts && opts.body) calls.push(JSON.parse(opts.body));
+        if (pathOf(url) === "/cft_lora/config") {
+          return resp({ ok: true, data: { has_api_key: true, api_key_masked: "sk-…abcd" } }); // 故意不给 anima 字段
+        }
+        return prev2(url, opts);
+      };
+      try {
+        T.OPEN_MODALS.get("cft-settings")?.close();
+        await tick(40);
+        T.Store._config = null;
+        T.openSettings();
+        await tick(220);
+
+        const sm = document.querySelector(".cft-settings-modal");
+        const inp = sm?.querySelector(".cft-settings-switchrow .cft-switch input[type=checkbox]");
+        check("R48 后端无该字段时开关被禁用（版本护栏）", !!inp && inp.disabled === true);
+        const guardState = sm?.querySelector(".cft-settings-switch-state")?.textContent || "";
+        check("R48 护栏状态徽标提示需重启", guardState === "需重启 ComfyUI", guardState);
+
+        if (inp) {
+          inp.checked = false;
+          inp.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        await tick(160);
+        check("R48 护栏下点开关不发写请求（不会清空 Key）", calls.length === 0, JSON.stringify(calls));
+      } finally {
+        globalThis.__CFT_HANDLE__ = prev2;
+        T.Store._config = null;
+      }
+    }
+
+    T.OPEN_MODALS.get("cft-settings")?.close();
+    await tick(30);
   }
 
   dm.close();

@@ -61,6 +61,18 @@ def main():
         _check("get_status.has_api_key", bool(status.get("has_api_key")))
         _check("get_status.api_key_masked 脱敏", str(status.get("api_key_masked", "")).endswith("3456"))
 
+        # ---- v2.38：anima_legacy_remap 开关（默认开 / 写读闭环 / merge）----
+        _check("默认 anima_legacy_remap 为 True", cfg.get_anima_remap_enabled() is True)
+        st2 = cfg.set_anima_remap_enabled(False)
+        raw2 = json.load(open(cfg_path, encoding="utf-8"))
+        _check("set_anima_remap_enabled(False) 落盘", raw2.get("anima_legacy_remap") is False)
+        _check("get_status 暴露 anima_legacy_remap", st2.get("anima_legacy_remap") is False)
+        _check("关开关不覆盖 api_key（merge）", raw2.get("api_key") == "sk-test-abcdef123456")
+        _check("关开关后 get_anima_remap_enabled 为 False", cfg.get_anima_remap_enabled() is False)
+        cfg.set_anima_remap_enabled(True)
+        _check("再开回来落盘为 True", json.load(open(cfg_path, encoding="utf-8")).get("anima_legacy_remap") is True)
+        _check("再开回来 get_anima_remap_enabled 为 True", cfg.get_anima_remap_enabled() is True)
+
         # 清空
         cfg.set_api_key("")
         _check("清空后 get_api_key 为空", cfg.get_api_key() == "")

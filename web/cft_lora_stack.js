@@ -52,7 +52,7 @@ const API_BASE = "/cft_lora";
  * 「代码明明改了却没效果」是最难查的一类问题（记得 Ctrl+Shift+R 强刷）。
  * 每轮改动前端后请同步 +1。
  */
-const FRONTEND_VERSION = "2.37";
+const FRONTEND_VERSION = "2.38";
 const NODE_CLASS = "CFTLoraStack";
 /** 单条加载器节点（插槽名翻译也要覆盖它） */
 const NODE_CLASS_LOADER = "CFTLoraLoader";
@@ -180,6 +180,7 @@ const I18N = {
   en: {
   "\n文件：{0}": "\nFile: {0}",
   "\n有自定义标签 / 说明": "\nHas custom tags / notes",
+  "Anima 兼容": "Anima Compatibility",
   "C 站信息": "Civitai Info",
   "C 站元数据文件": "Civitai Metadata File",
   "C 站描述": "Civitai Description",
@@ -311,7 +312,12 @@ const I18N = {
   "已保存并验证": "Saved and verified",
   "已刷新，共 {0} 个": "Refreshed, total {0}",
   "已取消收藏": "Unfavorited",
+  "已关闭": "Off",
+  "已关闭 Anima 块映射": "Anima block remap disabled",
   "已启用": "Enabled",
+  "已开启": "On",
+  "已开启 Anima 块映射": "Anima block remap enabled",
+  "需重启 ComfyUI": "Restart ComfyUI",
   "已在堆中": "Already in rack",
   "已在堆里（不可重复添加）": "Already in rack (cannot add again)",
   "已在文件管理器中定位": "Located in file manager",
@@ -475,7 +481,12 @@ const I18N = {
   "训练触发词": "Training trigger words",
   "训练轮数": "Training epochs",
   "设置": "Settings",
+  "设置失败：": "Failed to save: ",
+  "检测到后端仍是旧版本：请先重启 ComfyUI，此开关才会生效（现在点它没有意义，也会被忽略）。": "The backend is still on an older version — restart ComfyUI for this toggle to take effect (clicking it now has no effect and is ignored).",
   "设置（C 站 API Key 等）": "Settings (Civitai API Key, etc.)",
+  "旧版 Anima LoRA 块映射": "Legacy Anima LoRA block remap",
+  "旧版 Anima LoRA（28 块布局）接到新版 40 / 52 块模型上时，自动把层号换算到对应位置。Anima 2.9B / 3.8B 是在原 28 块模型中间插入新块扩出来的，旧 LoRA 的层号会整体错位——不换算时效果像没生效，调高权重反而变糊，而 ComfyUI 不会报缺失 key。换算只在加载时于内存中进行，LoRA 文件不会被修改。": "When a legacy Anima LoRA (28-block layout) is applied to a newer 40- or 52-block model, its layer indices are remapped to the matching positions. Anima 2.9B / 3.8B are depth expansions of the original 28-block model with new blocks inserted in between, so legacy LoRA layer numbers are offset — without remapping the LoRA seems to do nothing, and raising the weight only makes the image muddier, while ComfyUI reports no missing keys. The remap happens in memory at load time; the LoRA file itself is never modified.",
+  "关掉后按原始层号加载，方便和有映射的效果做 A/B 对比；只影响 Anima 系模型，其他模型、文本编码器与 llm_adapter 的权重一律不动。": "Turn this off to load with the original layer indices for an A/B comparison against the remapped version. Only Anima-family models are affected — other models, the text encoder and llm_adapter weights are never touched.",
   "C 站 API Key": "Civitai API Key",
   "清除 API Key": "Clear API Key",
   "清除": "Clear",
@@ -5177,7 +5188,7 @@ function openSettings() {
 
     // —— v2.23 排版重构：设置项按分组卡片组织 ——
     //
-    //   当前两组：① 语言  ② C 站 API Key
+    //   当前三组：① 语言  ② C 站 API Key  ③ Anima 兼容
     //   以后加选项就往下面继续 appendChild 一张 settingsSection(...)，
     //   不用改面板骨架与 CSS。
 
@@ -5378,6 +5389,70 @@ function openSettings() {
     apiSection.appendChild(
       h("div", { class: "cft-settings-btnrow cft-settings-apibtnrow" }, [testBtn, saveBtn])
     );
+
+    // 分组 ③：Anima 兼容（v2.38）
+    //   旧版 Anima LoRA（28 块）接到 40 / 52 块模型时的层号换算开关。
+    //   后端字段 anima_legacy_remap，默认开启；关掉 = 原样加载，用于 A/B 对比。
+    //
+    //   ⚠️ 版本护栏：前端 JS 是浏览器缓存/热重载的，后端 py 却要重启 ComfyUI 才换新。
+    //   若 /config 里没有这个字段，说明后端仍是旧版本 —— 旧版 /config/set 只认 api_key，
+    //   会把「没有 api_key 的请求」当成「清空 Key」，点一下就会把用户的 C 站 Key 抹掉。
+    //   因此这里直接禁用开关并要求重启，绝不放行。
+    const animaSupported = typeof status.anima_legacy_remap === "boolean";
+    let animaOn = status.anima_legacy_remap !== false; // 老后端没这个字段时按默认开启处理
+    const animaState = h("span", {
+      class: "cft-settings-switch-state" + (animaOn && animaSupported ? " cft-settings-switch-on" : ""),
+      text: !animaSupported ? T("需重启 ComfyUI") : (animaOn ? T("已开启") : T("已关闭")),
+    });
+    const animaInput = h("input", {
+      type: "checkbox",
+      checked: animaOn,
+      disabled: !animaSupported,
+      onChange: async (e) => {
+        if (!animaSupported) return;
+        const next = Boolean(e.target.checked);
+        animaInput.disabled = true;
+        try {
+          const res = await apiPost("/config/set", { anima_legacy_remap: next });
+          animaOn = next;
+          Store._config = res.data || null; // 缓存跟上，避免别处读到旧值
+          animaState.textContent = next ? T("已开启") : T("已关闭");
+          animaState.className = "cft-settings-switch-state" + (next ? " cft-settings-switch-on" : "");
+          modal.toast(next ? T("已开启 Anima 块映射") : T("已关闭 Anima 块映射"));
+        } catch (err) {
+          animaInput.checked = !next; // 写盘失败就回滚，别让界面撒谎
+          modal.toast(T("设置失败：") + (err.message || err), true);
+        } finally {
+          animaInput.disabled = false;
+        }
+      },
+    });
+
+    const animaSection = settingsSection(
+      T("Anima 兼容"),
+      T(
+        "旧版 Anima LoRA（28 块布局）接到新版 40 / 52 块模型上时，自动把层号换算到对应位置。Anima 2.9B / 3.8B 是在原 28 块模型中间插入新块扩出来的，旧 LoRA 的层号会整体错位——不换算时效果像没生效，调高权重反而变糊，而 ComfyUI 不会报缺失 key。换算只在加载时于内存中进行，LoRA 文件不会被修改。"
+      ),
+      [
+        h("div", { class: "cft-settings-switchrow" }, [
+          h("label", {
+            class: "cft-switch",
+            title: animaOn ? T("已开启") : T("已关闭"),
+          }, [animaInput, h("span", { class: "cft-switch-track" })]),
+          h("span", { class: "cft-settings-switchlabel", text: T("旧版 Anima LoRA 块映射") }),
+          animaState,
+        ]),
+        h("div", {
+          class: "cft-settings-tip cft-settings-tip-dim",
+          text: animaSupported
+            ? T(
+                "关掉后按原始层号加载，方便和有映射的效果做 A/B 对比；只影响 Anima 系模型，其他模型、文本编码器与 llm_adapter 的权重一律不动。"
+              )
+            : T("检测到后端仍是旧版本：请先重启 ComfyUI，此开关才会生效（现在点它没有意义，也会被忽略）。"),
+        }),
+      ]
+    );
+    modal.body.appendChild(animaSection);
   };
 
   modal.open();

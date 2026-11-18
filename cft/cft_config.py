@@ -46,6 +46,7 @@ __all__ = [
     "get_site_domain",
     "resolve_loras_dirs",
     "reload_config",
+    "set_anima_remap_enabled",
     "set_api_key",
     "config_path",
 ]
@@ -211,6 +212,21 @@ def get_anima_remap_enabled() -> bool:
     return bool(get_config().get("anima_legacy_remap", True))
 
 
+def set_anima_remap_enabled(enabled: bool) -> Dict[str, Any]:
+    """写入 ``anima_legacy_remap``（合并，不动其他字段），返回最新状态。
+
+    设置弹窗里的开关调这个；关闭后 LoRA 原样加载，便于做 A/B 对比。
+    """
+    path = config_path()
+    raw = _read_raw(path) if os.path.isfile(path) else {}
+    if not isinstance(raw, dict):
+        raw = {}
+    raw["anima_legacy_remap"] = bool(enabled)
+    _write_raw(path, raw)
+    _invalidate()
+    return get_status()
+
+
 def resolve_loras_dirs() -> List[str]:
     """LoRA 模型根目录列表。
 
@@ -255,5 +271,6 @@ def get_status() -> Dict[str, Any]:
         "proxy": get_proxy() or "",
         "has_api_key": bool(key),
         "api_key_masked": ("*" * 8 + key[-4:]) if len(key) >= 4 else "",
+        "anima_legacy_remap": get_anima_remap_enabled(),
         "loras_dirs": resolve_loras_dirs(),
     }
